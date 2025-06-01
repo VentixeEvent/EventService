@@ -44,6 +44,7 @@ public class EventService(IEventRepository eventRepository) : IEventService
         var result = await _eventRepository.GetAllAsync();
         var events = result.Result?.Select(x => new Event
         {
+            Id = x.Id,
             Image = x.Image,
             Title = x.Title,
             Description = x.Description,
@@ -60,6 +61,7 @@ public class EventService(IEventRepository eventRepository) : IEventService
         {
             var currentEvent = new Event
             {
+                Id = result.Result.Id,
                 Image = result.Result.Image,
                 Title = result.Result.Title,
                 Description = result.Result.Description,
@@ -71,6 +73,58 @@ public class EventService(IEventRepository eventRepository) : IEventService
         }
 
         return new EventResult<Event?> { Success = false, Error = "Event Not Found" };
+    }
+
+
+    public async Task<EventResult> UpdateEventAsync(string eventId, CreateEventRequest request)
+    {
+        try
+        {
+            // First, get the existing event
+            var existingEventResult = await _eventRepository.GetAsync(x => x.Id == eventId);
+            if (!existingEventResult.Success || existingEventResult.Result == null)
+            {
+                return new EventResult { Success = false, Error = "Event not found" };
+            }
+
+            // Update the entity properties
+            var eventEntity = existingEventResult.Result;
+            eventEntity.Image = request.Image;
+            eventEntity.Title = request.Title;
+            eventEntity.Description = request.Description;
+            eventEntity.Location = request.Location;
+            eventEntity.EventDate = request.EventDate;
+
+            var result = await _eventRepository.UpdateAsync(eventEntity);
+            return result.Success
+                ? new EventResult { Success = true }
+                : new EventResult { Success = false, Error = result.Error };
+        }
+        catch (Exception ex)
+        {
+            return new EventResult { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<EventResult> DeleteEventAsync(string eventId)
+    {
+        try
+        {
+            var existingEventResult = await _eventRepository.GetAsync(x => x.Id == eventId);
+            if (!existingEventResult.Success || existingEventResult.Result == null)
+            {
+                return new EventResult { Success = false, Error = "Event not found" };
+            }
+
+            var result = await _eventRepository.DeleteAsync(existingEventResult.Result);
+            return result.Success
+                ? new EventResult { Success = true }
+                : new EventResult { Success = false, Error = result.Error };
+        }
+        catch (Exception ex)
+        {
+            return new EventResult { Success = false, Error = ex.Message };
+        }
     }
 
 
